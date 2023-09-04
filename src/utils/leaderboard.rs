@@ -22,44 +22,42 @@ pub async fn get_leaderboard(hash: String) -> HttpResponse {
 }
 
 pub async fn get_scores(hash: String, query: web::Query<ScoresQueryModel>) -> HttpResponse {
-    if let Some(collection) = LEADERBOARD_COLLECTION.get() {
-        if let Ok(leaderboard) = collection.find_one(doc! { "hash": hash }, None).await {
-            if !leaderboard.is_none() {
-                let leaderboard = leaderboard.unwrap();
-                let scores = leaderboard.get_document("scores").expect("Failed Scores");
-                let characteristic = scores.get_document(query.characteristic.to_string()).expect("Failed Characteristic");
-                let difficulty_scores = characteristic.get_array(query.difficulty.to_string()).expect("Failed Difficulty").to_vec();
-
-                let mut sorted_scores: Vec<Value> = difficulty_scores
-                    .iter()
-                    .filter_map(|score| {
+    let collection = LEADERBOARD_COLLECTION.get().unwrap();
+    if let Ok(leaderboard) = collection.find_one(doc! { "hash": hash }, None).await {
+        if !leaderboard.is_none() {
+            let leaderboard = leaderboard.unwrap();
+            let scores = leaderboard.get_document("scores").unwrap();
+            if let Ok(characteristic) = scores.get_document(&query.characteristic) {
+                if let Ok(difficulty) = characteristic.get_array(&query.difficulty.to_string()) {
+                    let mut sorted_scores: Vec<Value> = difficulty.to_vec().iter().filter_map(|score| {
                         if let Bson::Document(doc) = score {
                             Some(serde_json::to_value(doc).unwrap())
-                        } else {
+                        }
+                        else {
                             None
                         }
                     }).collect();
-                sorted_scores.sort_by(|a, b| {
-                    let acc_a = a["accuracy"].as_f64().unwrap();
-                    let acc_b = b["accuracy"].as_f64().unwrap();
-                    acc_b.partial_cmp(&acc_a).unwrap_or(std::cmp::Ordering::Equal)
-                });
+                    sorted_scores.sort_by(|a, b| {
+                        let acc_a = a["accuracy"].as_f64().unwrap();
+                        let acc_b = b["accuracy"].as_f64().unwrap();
+                        acc_b.partial_cmp(&acc_a).unwrap_or(std::cmp::Ordering::Equal)
+                    });
 
-                let page_scores = sorted_scores.split_at((query.page *query.limit).try_into().unwrap()).0;
-                let limited_scores: Vec<&Value> = page_scores.iter().take(query.limit.try_into().unwrap()).collect();
+                    //let limit = sorted_scores
+                    //let limited_scores = sorted_scores.split_at(query.limit.try_into().unwrap()).0;
 
-                let score_count = difficulty_scores.len();
-                let json = json!({
-                    "scoreCount": score_count,
-                    "scores": limited_scores
-                });
-                return HttpResponse::Ok().insert_header(("access-control-allow-origin", "*")).body(serde_json::to_string_pretty(&json).unwrap())
+                    let score_count = &sorted_scores.len();
+                    let response = json!({
+                        "scoreCount": &score_count,
+                        "scores": &sorted_scores
+                    });
+                    return HttpResponse::Ok().insert_header(("access-control-allow-origin", "*")).body(serde_json::to_string_pretty(&response).unwrap())
+                }
             }
-
         }
     }
 
-    HttpResponse::NotFound().body("not found smh")
+    HttpResponse::Ok().body("a")
 }
 
 pub async fn upload_score(body: web::Json<ScoreModel>) -> HttpResponse {
