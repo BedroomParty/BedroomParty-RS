@@ -1,12 +1,11 @@
-use std::{fs::File, io::Read};
-
+use std::{fs::File, io::Read, time::{SystemTime, UNIX_EPOCH}};
 use actix_web::{HttpServer, App, Responder, HttpResponse, get, post, web::{Path, self}, HttpRequest};
 use crate::utils::{models::*, self, user};
 
 
-
 pub async fn setup() -> std::io::Result<()> {
     println!("Starting Server...");
+
     HttpServer::new(|| {
         App::new()
             .service(status)
@@ -66,13 +65,15 @@ async fn user_login(body: web::Json<UserLoginModel>) -> impl Responder {
 
 // Leaderboards
 #[post("/leaderboard/{hash}/upload")]
-async fn upload_score(_request: HttpRequest, body: web::Json<ScoreModel>) -> impl Responder {
-    //if let Some(authorization) = request.headers().get("Authorization") {
-    //    if authorization.is_empty() || authorization.to_str().unwrap() != utils::user::get_api_key(authorization.to_str().unwrap()).await {
-            //return HttpResponse::Unauthorized().body("Authorization is either null or doesn't exist");
-    //    }
-    //}
-    utils::leaderboard::upload_score(body).await
+async fn upload_score(request: HttpRequest, body: web::Json<ScoreModel>) -> impl Responder {
+    if let Some(authentication) = request.headers().get("Authorization") {
+        if authentication.to_str().unwrap() == user::get_api_key(body.id).await.as_str() {
+            if SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs_f64() < user::get_api_key_time(body.id).await {
+                return utils::leaderboard::upload_score(body).await;
+            }
+        }
+    }
+    HttpResponse::Unauthorized().body("Authoraization is either null or doesn't match!")
 }
 
 #[get("/leaderboard/{hash}")]

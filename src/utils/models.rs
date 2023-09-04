@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 #![allow(non_snake_case)]
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 // MongoDB Models
 
 #[derive(Deserialize, Debug)]
@@ -35,7 +35,7 @@ pub struct ScoreModel {
     pub modifiers: String
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct GetLeaderboardModel {
     userID: i32,
     diff: i32,
