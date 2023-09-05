@@ -43,13 +43,20 @@ pub async fn get_scores(hash: String, query: web::Query<ScoresQueryModel>) -> Ht
                         acc_b.partial_cmp(&acc_a).unwrap_or(std::cmp::Ordering::Equal)
                     });
 
-                    //let limit = sorted_scores
-                    //let limited_scores = sorted_scores.split_at(query.limit.try_into().unwrap()).0;
+                    let mut  query_limit: usize = query.limit.try_into().unwrap();
+                    if query_limit > 50 {
+                        query_limit = 50;
+                    }
+                    let query_page: usize = query.page.try_into().unwrap();
+                    let start_index = query_page * query_limit;
+                    let end_index = std::cmp::min(start_index + query_limit, sorted_scores.len());
+
+                    let limit: Vec<Value> = sorted_scores[start_index..end_index].to_vec();
 
                     let score_count = &sorted_scores.len();
                     let response = json!({
                         "scoreCount": &score_count,
-                        "scores": &sorted_scores
+                        "scores": &limit
                     });
                     return HttpResponse::Ok().insert_header(("access-control-allow-origin", "*")).body(serde_json::to_string_pretty(&response).unwrap())
                 }
