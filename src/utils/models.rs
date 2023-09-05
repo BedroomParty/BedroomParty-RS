@@ -56,6 +56,5 @@ pub struct ScoresQueryModel {
 
 #[derive(Deserialize, Debug)]
 pub struct UserLoginModel {
-    #[serde(rename = "id")] pub user_id: i64,
-    #[serde(rename = "apiKey")] pub api_key: String
+    #[serde(rename = "id")] pub user_id: i64
 }

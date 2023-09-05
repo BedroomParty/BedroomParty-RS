@@ -64,7 +64,7 @@ pub async fn get_scores(hash: String, query: web::Query<ScoresQueryModel>) -> Ht
         }
     }
 
-    HttpResponse::Ok().body("a")
+    HttpResponse::NotFound().body("Leaderboard not found")
 }
 
 pub async fn upload_score(body: web::Json<ScoreModel>) -> HttpResponse {

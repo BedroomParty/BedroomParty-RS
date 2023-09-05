@@ -1,4 +1,4 @@
-use actix_web::{HttpResponse, web};
+use actix_web::{HttpResponse, web, HttpRequest};
 use rand::Rng;
 use serde_json::to_string_pretty;
 use mongodb::bson::doc;
@@ -44,14 +44,18 @@ pub async fn get_api_key_time(id: i64) -> f64 {
     0.0
 }
 
-pub async fn login_user(body: web::Json<UserLoginModel>) -> HttpResponse {
+pub async fn login_user(body: web::Json<UserLoginModel>, request: HttpRequest) -> HttpResponse {
+    if request.headers().get("Authorization").is_none() {
+        return HttpResponse::Unauthorized().await.unwrap();
+    }
+
     let collection = USER_COLLECTION.get().unwrap();
     if let Ok(user) = collection.find_one(doc! { "game_id": body.user_id }, None).await {
         if !user.is_none() {
             let user = user.unwrap();
             let mut api_key = user.get("apiKey").unwrap().to_string();
             api_key = api_key.replace("\"", "");
-            if api_key == body.api_key {
+            if api_key.as_str() == request.headers().get("Authorization").unwrap().to_str().unwrap() {
                 let session_key = general_purpose::STANDARD.encode(generate_random_string(50));
                 user.get("username").unwrap();
                 let time_set = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs_f64();

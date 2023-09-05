@@ -59,8 +59,8 @@ async fn create_user(request: HttpRequest, body: web::Json<UserModel>) -> impl R
 }
 
 #[post("/user/login")]
-async fn user_login(body: web::Json<UserLoginModel>) -> impl Responder {
-    user::login_user(body).await
+async fn user_login(body: web::Json<UserLoginModel>, request: HttpRequest) -> impl Responder {
+    user::login_user(body, request).await
 }
 
 // Leaderboards
