@@ -8,7 +8,7 @@ pub struct UserModel {
     pub username: String,
     #[serde(rename = "discordID")] pub discord_id: i64,
     #[serde(rename = "gameID")] pub game_id: i64,
-    pub avatar: String
+    pub avatar: Option<String>
 }
 
 #[derive(Deserialize, Debug)]
