@@ -7,14 +7,16 @@ use base64::{Engine as _, engine::general_purpose};
 
 use super::models::*;
 
-pub async fn get_user_info(id: u32) -> HttpResponse {
+pub async fn get_user_info(id: i64) -> HttpResponse {
     let collection = USER_COLLECTION.get().unwrap();
     if let Ok(user) = collection.find_one(doc! { "game_id": id }, None).await {
         if !user.is_none() {
             let mut user = user.unwrap();
+            user.remove("_id");
             user.remove("apiKey");
             user.remove("sessionKey");
-            HttpResponse::Ok().body(to_string_pretty(&user).unwrap().to_string());
+            user.remove("sessionKeyExpires");
+            return HttpResponse::Ok().body(to_string_pretty(&user).unwrap().to_string());
         }
     }
     HttpResponse::NotFound().body(format!("User {} not found!", id))
