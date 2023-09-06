@@ -19,6 +19,7 @@ pub async fn setup() -> std::io::Result<()> {
             .service(user_login)
             .service(get_fucking_docs)
             .service(upload_avatar)
+            .service(get_user_api_key)
     })
     .bind(("127.0.0.1", 8080))?
     .workers(4)
