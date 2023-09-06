@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 #![allow(non_snake_case)]
+
 use serde::Deserialize;
 // MongoDB Models
 
@@ -57,4 +58,9 @@ pub struct ScoresQueryModel {
 #[derive(Deserialize, Debug)]
 pub struct UserLoginModel {
     #[serde(rename = "id")] pub user_id: i64
+}
+
+#[derive(Deserialize, Debug)]
+pub struct AvatarUploadModel {
+    pub avatar: String
 }
