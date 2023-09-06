@@ -1,4 +1,5 @@
-use std::{fs::File, io::Read, time::{SystemTime, UNIX_EPOCH}};
+use std::{fs::File, io::Read, time::{SystemTime, UNIX_EPOCH}, collections::HashMap};
+use actix_files::Files;
 use actix_web::{HttpServer, App, Responder, HttpResponse, get, post, web::{Path, self}, HttpRequest};
 use crate::utils::{models::*, self, user};
 
@@ -17,6 +18,8 @@ pub async fn setup() -> std::io::Result<()> {
             .service(upload_score)
             .service(create_user)
             .service(user_login)
+            .service(get_fucking_docs)
+            .service(upload_avatar)
     })
     .bind(("127.0.0.1", 8080))?
     .workers(4)
@@ -27,6 +30,12 @@ pub async fn setup() -> std::io::Result<()> {
 #[get("/")]
 async fn status() -> impl Responder {
     HttpResponse::Ok().body("Online baby")
+}
+
+#[get("/docs")]
+async fn get_fucking_docs() -> impl Responder {
+    let content = std::fs::read_to_string("./src/extras/swagger.html").unwrap();
+    HttpResponse::Ok().content_type("text/html").body(content)
 }
 
 #[get("/staff")]
@@ -41,11 +50,13 @@ async fn get_user_profile(id: Path<u64>) -> impl Responder {
 
 #[get("/user/{id}/avatar")]
 async fn get_user_avatar(id: Path<u64>) -> impl Responder {
-    let avatar = File::open(format!("./src/extras/Users/Avatars/{id}.png"));
-    let mut avatar_data = Vec::new();
-    avatar.unwrap().read_to_end(&mut avatar_data).unwrap();
+    if let Ok(mut avatar) = File::open(format!("./src/extras/Users/Avatars/{id}.png")) {
+        let mut avatar_data = Vec::new();
+        avatar.read_to_end(&mut avatar_data).unwrap();
+        return HttpResponse::Ok().content_type("image/png").body(avatar_data);
+    }
 
-    HttpResponse::Ok().content_type("image/png").body(avatar_data)
+    HttpResponse::NotFound().body("Unable to find avatar")
 }
 
 #[post("/user/create")]
@@ -61,6 +72,27 @@ async fn create_user(request: HttpRequest, body: web::Json<UserModel>) -> impl R
 #[post("/user/login")]
 async fn user_login(body: web::Json<UserLoginModel>, request: HttpRequest) -> impl Responder {
     user::login_user(body, request).await
+}
+
+#[post("/user/{id}/apikey")]
+async fn get_user_api_key(request: HttpRequest, id: Path<u64>) -> impl Responder {
+    if let Some(authorization) = request.headers().get("Authorization") {
+        if authorization.to_str().unwrap() == std::env::var("PRIVATE_AUTH").unwrap() {
+            return HttpResponse::Ok().body(mongodb::bson::doc! { "apiKey": user::get_api_key((*id).try_into().unwrap()).await}.to_string());
+        }
+    }
+    HttpResponse::Unauthorized().body("Authorzation is either null or doesn't match!")
+}
+
+#[post("/user/{id}/avatar/upload")]
+async fn upload_avatar(id: Path<u64>, request: HttpRequest, body: web::Json<AvatarUploadModel>) -> impl Responder {
+    if let Some(authorization) = request.headers().get("Authorization") {
+        if authorization.to_str().unwrap() == std::env::var("PRIVATE_AUTH").unwrap() {
+            user::upload_avatar(body.avatar.to_string(), (*id).try_into().unwrap()).await;
+        }
+    }
+
+    HttpResponse::Ok()
 }
 
 // Leaderboards
