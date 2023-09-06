@@ -1,5 +1,4 @@
-use std::{fs::File, io::Read, time::{SystemTime, UNIX_EPOCH}, collections::HashMap};
-use actix_files::Files;
+use std::{fs::File, io::Read, time::{SystemTime, UNIX_EPOCH}};
 use actix_web::{HttpServer, App, Responder, HttpResponse, get, post, web::{Path, self}, HttpRequest};
 use crate::utils::{models::*, self, user};
 
