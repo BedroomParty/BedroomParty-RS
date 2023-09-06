@@ -4,7 +4,7 @@ use serde_json::{json, Value};
 
 use crate::service::mongo::*;
 
-use super::models::{ScoreModel, ScoresQueryModel};
+use super::{models::{ScoreModel, ScoresQueryModel}, user};
 
 pub async fn get_leaderboard(hash: String) -> HttpResponse {
     if let Some(collection) = LEADERBOARD_COLLECTION.get() {
@@ -42,6 +42,12 @@ pub async fn get_scores(hash: String, query: web::Query<ScoresQueryModel>) -> Ht
                         let acc_b = b["accuracy"].as_f64().unwrap();
                         acc_b.partial_cmp(&acc_a).unwrap_or(std::cmp::Ordering::Equal)
                     });
+
+                    for score in &mut sorted_scores {
+                        let score = score.as_object_mut().unwrap();
+                        let id = score.get("id").unwrap().as_i64().unwrap();
+                        score.insert("username".to_string(), serde_json::Value::String(user::get_user_name(id).await));
+                    }
 
                     let mut  query_limit: usize = query.limit.try_into().unwrap();
                     if query_limit > 50 {
