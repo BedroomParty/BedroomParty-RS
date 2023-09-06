@@ -1,3 +1,5 @@
+use std::time::SystemTime;
+
 use actix_web::{HttpResponse, web};
 use mongodb::bson::{doc, Bson};
 use serde_json::{json, Value};
@@ -76,7 +78,7 @@ pub async fn get_scores(hash: String, query: web::Query<ScoresQueryModel>) -> Ht
 pub async fn upload_score(body: web::Json<ScoreModel>) -> HttpResponse {
     let collection = LEADERBOARD_COLLECTION.get().unwrap();
     let leaderboard = collection.find_one(doc! { "hash": &body.hash }, None).await.unwrap();
-
+    let time: i64 = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs().try_into().unwrap();
     let score = doc! {
         "id": &body.id,
         "modifiedScore": &body.modifiedScore,
@@ -86,6 +88,7 @@ pub async fn upload_score(body: web::Json<ScoreModel>) -> HttpResponse {
         "badCuts": &body.badCuts,
         "fullCombo": &body.fullCombo,
         "modifiers": &body.modifiers,
+        "timeSet": time
     };
 
     if leaderboard.is_none() {
@@ -117,7 +120,7 @@ pub async fn upload_score(body: web::Json<ScoreModel>) -> HttpResponse {
                 for score in difficulty {
                     let score = score.as_document().unwrap();
                     if score.get_i64("id").unwrap() == body.id  {
-                        if score.get_i64("modifiedScore").unwrap() < body.modifiedScore || score.get_i64("multipliedScore").unwrap() < body.multipliedScore {
+                        if score.get_i64("modifiedScore").unwrap() < body.modifiedScore {
                             let update = doc! {
                                 "$pull": {
                                     &directory: {
