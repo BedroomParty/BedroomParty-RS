@@ -1,8 +1,8 @@
 use std::fs::File;
-use std::io::{self, Write, Cursor};
-use image::io::Reader as ImageReader;
+use std::io::Cursor;
 use std::io::copy;
 use actix_web::{HttpResponse, web, HttpRequest};
+use image::EncodableLayout;
 use rand::Rng;
 use serde_json::{to_string_pretty, Value};
 use mongodb::bson::doc;
@@ -58,6 +58,12 @@ pub async fn get_api_key_time(id: i64) -> f64 {
     0.0
 }
 
+pub async fn upload_avatar(avatar: String, id: i64) {
+    let avatar = general_purpose::STANDARD.decode(avatar).unwrap();
+    let image = image::load_from_memory(avatar.as_bytes()).unwrap();
+    image.save_with_format(format!("./src/extras/Users/Avatars/{}.png", id), image::ImageFormat::Png).unwrap()
+}
+
 pub async fn login_user(body: web::Json<UserLoginModel>, request: HttpRequest) -> HttpResponse {
     if request.headers().get("Authorization").is_none() {
         return HttpResponse::Unauthorized().await.unwrap();
@@ -109,12 +115,12 @@ pub async fn create_new_user(body: web::Json<UserModel>) -> HttpResponse {
                 "game_id": &body.game_id,
                 "username": &body.username,
                 "avatar": format!("https://api.thebedroom.party/user/{}/avatar", &body.game_id),
-                "apiKey": api_key,
+                "apiKey": &api_key,
                 "sessionKey": ""
             };
             collection.insert_one(new_user, None).await.unwrap();
             println!("[API: /user/create] Created new user with username: {}", &body.username);
-            return HttpResponse::Ok().body("Created new user!");
+            return HttpResponse::Ok().body(doc! { "apiKey": &api_key }.to_string());
         }
     }
     HttpResponse::Conflict().body("User already exists!")
