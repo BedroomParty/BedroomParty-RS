@@ -7,9 +7,8 @@ use serde::Deserialize;
 #[derive(Deserialize, Debug)]
 pub struct UserModel {
     pub username: String,
-    #[serde(rename = "discordID")] pub discord_id: i64,
-    #[serde(rename = "gameID")] pub game_id: i64,
-    pub avatar: Option<String>
+    #[serde(rename = "discordID")] pub discord_id: String,
+    #[serde(rename = "gameID")] pub game_id: String
 }
 
 #[derive(Deserialize, Debug)]
@@ -22,11 +21,10 @@ pub struct LeaderboardModel {
 // Server Models
 #[derive(Deserialize, Debug)]
 pub struct ScoreModel {
-    pub hash: String,
     pub difficulty: i32,
     pub characteristic: String,
 
-    pub id: i64,
+    pub id: String,
     pub multipliedScore: i64,
     pub modifiedScore: i64,
     pub accuracy: f32,
@@ -38,7 +36,7 @@ pub struct ScoreModel {
 
 #[derive(Deserialize, Debug)]
 pub struct GetLeaderboardModel {
-    userID: i32,
+    userID: String,
     diff: i32,
     char: String
 }
@@ -52,12 +50,12 @@ pub struct ScoresQueryModel {
     pub sort: String,
     pub limit: i32,
     pub page: i32,
-    #[serde(rename = "id")] pub user_id: i64,
+    #[serde(rename = "id")] pub user_id: String,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct UserLoginModel {
-    #[serde(rename = "id")] pub user_id: i64
+    #[serde(rename = "id")] pub user_id: String
 }
 
 #[derive(Deserialize, Debug)]
