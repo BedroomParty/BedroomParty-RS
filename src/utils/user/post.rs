@@ -25,7 +25,7 @@ pub async fn login_user(body: Json<UserLoginModel>) -> HttpResponse {
             let update = doc! {
                 "$set": {
                     "sessionKey": &session_key,
-                    "sessionKey": time_set + 21600
+                    "sessionKeyExpires": time_set + 21600
                 }
             };
             
@@ -34,7 +34,7 @@ pub async fn login_user(body: Json<UserLoginModel>) -> HttpResponse {
             return HttpResponse::Ok().body(doc! { "sessionKey": &session_key }.to_string());
         }
     }
-    HttpResponse::Ok().body("a")
+    HttpResponse::InternalServerError().body("Dunno what happened lmfao, better luck next time bucko")
 } 
 
 pub async fn create_user(body: Json<UserModel>) -> HttpResponse {
@@ -50,12 +50,15 @@ pub async fn create_user(body: Json<UserModel>) -> HttpResponse {
             let image = image::load_from_memory(&avatar.bytes().await.unwrap().to_vec()).unwrap();
             image.save_with_format(format!("./src/extras/Users/Avatars/{}.png", &body.game_id), image::ImageFormat::Png).unwrap();
             
+            let expires: i64 = 0;
             let new_user = doc! {
                 "discord_id": &body.discord_id,
                 "game_id": &body.game_id,
                 "username": &body.username,
                 "avatar": format!("https://api.thebedroom.party/user/{}/avatar", &body.game_id),
-                "apiKey": &api_key
+                "apiKey": &api_key,
+                "sessionKey": "",
+                "sessionKeyExpires": expires
             };
             collection.insert_one(new_user, None).await.unwrap();
             println!("[API: /user/create] Created new user");

@@ -24,7 +24,7 @@ pub async fn setup() -> std::io::Result<()> {
             .service(get_staff_ids)
             .service(get_fucking_docs)
             .service(get_fucking_swagger)
-            .service(get_fucking_content)
+            //.service(get_fucking_content) keep just in case swagger acts up again
 
             .service(post_user_create)
             .service(post_user_login)
@@ -108,12 +108,10 @@ async fn post_user_create(request: HttpRequest, body: web::Json<UserModel>) -> i
 async fn post_user_login(body: web::Json<UserLoginModel>, request: HttpRequest) -> impl Responder {
     if let Some(authorization) = request.headers().get("Authorization") {
         if authorization.to_str().unwrap() == get_api_key(body.user_id.to_string()).await.as_str() {
-            if std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap().as_secs() > get_session_key_time(body.user_id.to_string()).await.try_into().unwrap() {
-                return login_user(body).await;
-            }
+            return login_user(body).await;
         }
     }
-    HttpResponse::Unauthorized().body("Authorization may not match, be null, or expired.")
+    HttpResponse::Unauthorized().body("Authorization may not match, or be null.")
 }
 
 #[post("/user/{id}/apikey")]

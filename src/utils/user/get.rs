@@ -58,7 +58,7 @@ pub async fn get_session_key_time(id: String) -> i64 {
     let collection = USER_COLLECTION.get().unwrap();
     if let Ok(user) = collection.find_one(doc! { "game_id": id }, None).await {
         if !user.is_none() {
-            return user.unwrap().get_i64("sessionKey").unwrap();
+            return user.unwrap().get_i64("sessionKeyExpires").unwrap();
         }
     }
     0
