@@ -8,7 +8,7 @@ pub async fn score_upload(hash: String, body: Json<ScoreModel>) -> HttpResponse 
     if let Ok(leaderboard) = collection.find_one(doc! { "hash": &hash}, None).await {
         let time_set: i64 = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs().try_into().unwrap();
         let new_score = doc! {
-            "id": &body.id,
+            "id": &body.id.to_string(),
             "modifiedScore": &body.modifiedScore,
             "multipliedScore": &body.multipliedScore,
             "accuracy": &body.accuracy,

@@ -1,6 +1,6 @@
 use actix_web::{HttpResponse, web::Query};
 use mongodb::bson::{doc, Bson};
-use serde_json::{Value, to_value, json};
+use serde_json::{Value, to_value, json, to_string_pretty};
 use crate::service::{mongo::LEADERBOARD_COLLECTION, models::*};
 
 pub async fn leaderboard_overview(hash: String) -> HttpResponse {
@@ -74,7 +74,7 @@ pub async fn leaderboard(hash: String, query: Query<ScoresQueryModel>) -> HttpRe
                     });
                     return HttpResponse::Ok()
                         .insert_header(("access-control-allow-origin", "*"))
-                        .body(response.to_string());
+                        .body(to_string_pretty(&response).unwrap());
                 }
             }
         }

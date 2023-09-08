@@ -25,7 +25,7 @@ pub async fn get_user(id: String) -> HttpResponse {
 
 pub async fn get_username(id: String) -> String {
     let collection = USER_COLLECTION.get().unwrap();
-    if let Ok(user) = collection.find_one(doc! { "game_id": id }, None).await {
+    if let Ok(user) = collection.find_one(doc! { "game_id": id.replace("\"", "") }, None).await {
         if !user.is_none() {
             return user.unwrap().get_str("username").unwrap().to_string();
         }
