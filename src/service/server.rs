@@ -24,7 +24,13 @@ pub async fn setup() -> std::io::Result<()> {
             .service(get_staff_ids)
             .service(get_fucking_docs)
             .service(get_fucking_swagger)
-            //.service(get_fucking_content) keep just in case swagger acts up again
+            .service(get_fucking_swagger_ui)
+            .service(get_fucking_swagger_ui_bundle)
+            .service(get_fucking_index_ui)
+            .service(get_fucking_32_favicon)
+            .service(get_fucking_16_favicon)
+            .service(get_fucking_swagger_ui_preset)
+            .service(get_fucking_swagger_ui_initializer)
 
             .service(post_user_create)
             .service(post_user_login)
@@ -55,16 +61,35 @@ async fn get_fucking_docs() -> impl Responder {
     HttpResponse::Ok().content_type("text/html").body(content)
 }
 
-#[get("/{file}")]
-async fn get_fucking_content(file: Path<String>) -> impl Responder {
-    let content = std::fs::read_to_string(format!("./src/extras/dist/{}", file.to_string())).expect("failed lmfao");
-    
-    if content.is_empty() {
-        HttpResponse::Ok().body("a")
-    }
-    else {
-        HttpResponse::Ok().body(content)
-    }
+#[get("/swagger-ui.css")]
+async fn get_fucking_swagger_ui() -> impl Responder {
+    HttpResponse::Ok().body(std::fs::read_to_string("./src/extras/dist/swagger-ui.css").unwrap())
+}
+
+#[get("/index.css")]
+async fn get_fucking_index_ui() -> impl Responder {
+    HttpResponse::Ok().body(std::fs::read_to_string("./src/extras/dist/index.css").unwrap())
+}
+
+#[get("/swagger-ui-bundle.js")]
+async fn get_fucking_swagger_ui_bundle() -> impl Responder {
+    HttpResponse::Ok().body(std::fs::read_to_string("./src/extras/dist/swagger-ui-bundle.js").unwrap())
+}
+#[get("/swagger-ui-standalone-preset.js")]
+async fn get_fucking_swagger_ui_preset() -> impl Responder {
+    HttpResponse::Ok().body(std::fs::read_to_string("./src/extras/dist/swagger-ui-standalone-preset.js").unwrap())
+}
+#[get("/swagger-initializer.js")]
+async fn get_fucking_swagger_ui_initializer() -> impl Responder {
+    HttpResponse::Ok().body(std::fs::read_to_string("./src/extras/dist/swagger-initializer.js").unwrap())
+}
+#[get("/favicon-32x32.png")]
+async fn get_fucking_32_favicon() -> impl Responder {
+    HttpResponse::Ok().body(std::fs::read_to_string("./src/extras/dist/favicon-32x32.png").unwrap())
+}
+#[get("/favicon-16x16.png")]
+async fn get_fucking_16_favicon() -> impl Responder {
+    HttpResponse::Ok().body(std::fs::read_to_string("./src/extras/dist/favicon-16x16.png").unwrap())
 }
 
 #[get("/docs/swagger.json")]
@@ -121,7 +146,7 @@ async fn post_user_api_key(request: HttpRequest, id: Path<String>) -> impl Respo
             return HttpResponse::Ok().body(mongodb::bson::doc! { "apiKey": get_api_key(id.to_string()).await }.to_string());
         }
     }
-    HttpResponse::Unauthorized().body("Authorzation is either null or doesn't match!")
+    HttpResponse::Unauthorized().body("Authorization is either null or doesn't match!")
 }
 
 #[post("/user/{id}/avatar/upload")]
@@ -139,13 +164,14 @@ async fn post_upload_avatar(id: Path<String>, request: HttpRequest, body: web::J
 #[post("/leaderboard/{hash}/upload")]
 async fn post_score_upload(request: HttpRequest, body: web::Json<ScoreModel>, hash: Path<String>) -> impl Responder {
     if let Some(authentication) = request.headers().get("Authorization") {
+        println!("{}", &authentication.to_str().unwrap());
         if authentication.to_str().unwrap() == get_session_key(body.id.to_string()).await.as_str() {
             if SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() < get_session_key_time(body.id.to_string()).await.try_into().unwrap() {
                 return score_upload(hash.to_string(), body).await;
             }
         }
     }
-    HttpResponse::Unauthorized().body("Authoraization is either null or doesn't match!")
+    HttpResponse::Unauthorized().body("Authorization is either null or doesn't match!")
 }
 
 #[get("/leaderboard/{hash}")]
