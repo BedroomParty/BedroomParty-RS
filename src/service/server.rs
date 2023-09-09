@@ -32,6 +32,8 @@ pub async fn setup() -> std::io::Result<()> {
             .service(get_fucking_swagger_ui_preset)
             .service(get_fucking_swagger_ui_initializer)
 
+            .service(speeciltest)
+
             .service(post_user_create)
             .service(post_user_login)
             .service(post_user_api_key)
@@ -52,6 +54,11 @@ pub async fn setup() -> std::io::Result<()> {
 #[get("/")]
 async fn get_status() -> impl Responder {
     HttpResponse::Ok().body("Online baby")
+}
+
+#[get("/speeciltest")]
+async fn speeciltest() -> impl Responder {
+    HttpResponse::Ok().body(std::fs::read_to_string("./src/extras/random.txt").unwrap())
 }
 
 #[get("/docs")]
@@ -164,7 +171,6 @@ async fn post_upload_avatar(id: Path<String>, request: HttpRequest, body: web::J
 #[post("/leaderboard/{hash}/upload")]
 async fn post_score_upload(request: HttpRequest, body: web::Json<ScoreModel>, hash: Path<String>) -> impl Responder {
     if let Some(authentication) = request.headers().get("Authorization") {
-        println!("{}", &authentication.to_str().unwrap());
         if authentication.to_str().unwrap() == get_session_key(body.id.to_string()).await.as_str() {
             if SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() < get_session_key_time(body.id.to_string()).await.try_into().unwrap() {
                 return score_upload(hash.to_string(), body).await;
