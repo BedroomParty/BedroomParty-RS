@@ -19,7 +19,7 @@ pub async fn login_user(body: Json<UserLoginModel>) -> HttpResponse {
     if let Ok(user) = collection.find_one(doc! { "game_id": &body.user_id }, None).await {
         if !user.is_none() {
             let user = user.unwrap();
-            let username = user.get("username").unwrap();
+            let username = user.get_str("username").unwrap();
             let session_key = general_purpose::STANDARD.encode(generate_random_string(50));
             let time_set: i64 = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs().try_into().unwrap();
             let update = doc! {
@@ -30,8 +30,8 @@ pub async fn login_user(body: Json<UserLoginModel>) -> HttpResponse {
             };
             
             collection.update_one(doc! { "game_id": &body.user_id }, update, None).await.unwrap();
-            println!("[API: /user/login] {} logged in. Session key: {}", username, &session_key);
-            return HttpResponse::Ok().body(doc! { "sessionKey": &session_key }.to_string());
+            println!("[API: /user/login] {} logged in. Session key: {}", &username, &session_key);
+            return HttpResponse::Ok().body(doc! { "sessionKey": &session_key, "username": &username }.to_string());
         }
     }
     HttpResponse::InternalServerError().body("Dunno what happened lmfao, better luck next time bucko")
