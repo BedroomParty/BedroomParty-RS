@@ -1,6 +1,8 @@
+use std::collections::HashMap;
+
 use actix_web::{HttpResponse, web::Query};
 use mongodb::bson::{doc, Bson};
-use serde_json::{Value, to_value, json, to_string_pretty};
+use serde_json::{Value, to_value, to_string, json, to_string_pretty};
 use crate::service::{mongo::LEADERBOARD_COLLECTION, models::*};
 
 pub async fn leaderboard_overview(hash: String) -> HttpResponse {
@@ -10,12 +12,25 @@ pub async fn leaderboard_overview(hash: String) -> HttpResponse {
             let mut leaderboard = leaderboard.unwrap();
             leaderboard.remove("_id");
 
-            let _scores = leaderboard.get_document("scores").unwrap();
-            // Finish later, "a.json" has new format
+            let characteristics = leaderboard.get_document("scores").unwrap();
+            let mut test: HashMap<&String, Vec<&String>> = HashMap::new();
+
+            for characteristic in characteristics {
+                let char_str = &characteristic.0;
+                let char = char_str.clone();
+                let difficulties: Vec<&String> = characteristic.1.as_document().unwrap().keys().collect();
+                test.insert(char, difficulties);
+            }
+            for a in &test {
+                let separator = " ";
+                println!("\n\n\n\nPrayin: {}\nPrayin2: {}", a.0, a.1.iter().map(|s| s.as_str()).collect::<Vec<&str>>().join(separator));
+            }
+            
+            println!("{}", to_string(&test).unwrap());
 
             return HttpResponse::Ok()
                 .insert_header(("access-control-allow-origin", "*"))
-                .body("a");
+                .body(to_string(&test).unwrap());
         }
     }
 
@@ -48,30 +63,52 @@ pub async fn leaderboard(hash: String, query: Query<ScoresQueryModel>) -> HttpRe
                         acc_b.partial_cmp(&acc_a).unwrap_or(std::cmp::Ordering::Equal)
                     });
 
-                    for score in &mut scores {
-                        let score = score.as_object_mut().unwrap();
-                        let id = score.get("id").unwrap().to_string();
-                        score.insert("username".to_string(), Value::String(crate::utils::user::get::get_username(id).await));
-                    
-                        if query.sort == "around" {
-                            // do
-                        }
-                    }
-
                     let mut limit: usize = query.limit.try_into().unwrap();
                     if limit > 50 {
                         limit = 50;
                     }
-                    let page: usize = query.page.try_into().unwrap();
-                    let start = page * limit;
-                    let end = std::cmp::min(start + limit, scores.len());
 
-                    let limited_scores: Vec<Value> = scores[start..end].to_vec();
-                    let score_count = &scores.len();
-                    let response = json!({
-                        "scoreCount": score_count,
-                        "scores": &limited_scores
-                    });
+                    let mut user_id_position: usize = 0;
+                    for i in 0..scores.len() {
+                        let score = scores[i].as_object_mut().unwrap();
+                        let id = score.get("id").unwrap().to_string();
+                        score.insert("username".to_string(), Value::String(crate::utils::user::get::get_username(id.clone()).await));
+
+                        if query.sort == "around" && id == query.user_id {
+                            user_id_position = i;
+                        }
+                    }
+
+                    
+
+                    let response: Value;
+                    if query.sort == "around" {
+                        let page = user_id_position % 10;
+                        println!("Page: {page}");
+
+                        let start = page * limit;
+                        let end = std::cmp::min(start + limit, scores.len());
+
+                        let limited_scores: Vec<Value> = scores[start..end].to_vec();
+
+                        response = json!({
+                            "scoreCount": &scores.len(),
+                            "scores": &limited_scores
+                        });
+                    }
+                    else {
+                        let page: usize = query.page.try_into().unwrap();
+                        let start = page * limit;
+                        let end = std::cmp::min(start + limit, scores.len());
+
+                        let limited_scores: Vec<Value> = scores[start..end].to_vec();
+                        let score_count = &scores.len();
+                        response = json!({
+                            "scoreCount": score_count,
+                            "scores": &limited_scores
+                        });
+                    }
+                    
                     return HttpResponse::Ok()
                         .insert_header(("access-control-allow-origin", "*"))
                         .body(to_string_pretty(&response).unwrap());
